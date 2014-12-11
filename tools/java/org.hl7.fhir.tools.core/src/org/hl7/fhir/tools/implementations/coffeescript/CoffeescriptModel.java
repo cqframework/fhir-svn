@@ -93,8 +93,6 @@ public class CoffeescriptModel {
     fileBlock.ln("# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ");
     fileBlock.ln("# POSSIBILITY OF SUCH DAMAGE.");
 
-
-    fileBlock.ln("DT = require '../cql-datatypes'");
     if(includeCore){
       includeCoreRequires(fileBlock);
     }
@@ -230,17 +228,19 @@ public class CoffeescriptModel {
           elementType = typeRef.getResolvedTypeName();
         }
         if (elementType.equals("*")) {
-          generateUnknownValueField(typeName,description, block);
+          generateUnknownValueField(typeName,description,multi, block);
+        }else if (elementType.equals("primitive")) {
+          generatePrimitiveField(block, typeName);
         } else if (elementType.equals("base64Binary")) {
-          generatePrimitiveValueField(typeName,"",description, block);
+          generatePrimitiveValueField(typeName,"",description,multi, block);
         } else if (elementType.equals("boolean")) {
-          generatePrimitiveValueField(typeName,"boolean",description, block);
+          generatePrimitiveValueField(typeName,"boolean",description,multi, block);
         } else if (elementType.equals("integer") || elementType.equals("decimal")) {
-          generatePrimitiveValueField(typeName,"Number",description, block);
+          generatePrimitiveValueField(typeName,"Number",description, multi,block);
         } else if (elementType.equals("instant") || elementType.equals("date") || elementType.equals("dateTime")) {
-          generatePrimitiveValueField(typeName, "Date", description,block);
+          generatePrimitiveValueField(typeName, "Date", description,multi,block);
         } else if (elementType.equals("string") || elementType.equals("uri") || elementType.equals("code") || elementType.equals("id")) {
-          generatePrimitiveValueField(typeName, "String", description,block);
+          generatePrimitiveValueField(typeName, "String", description,multi,block);
         } else if (elementType.equals("Resource")) {
           if (multi) {
             generateMultiResourceValueField(typeName, "Resource",description, block);
@@ -282,29 +282,70 @@ public class CoffeescriptModel {
     }
     block.ln("###");
   }
-  public void generatePrimitiveValueField(String typeName, String objectType, String description, GenBlock block) {
-    generateReturnComment(objectType,description,false,block);
-    block.ln(typeName + ":-> @json['" + typeName + "']");
-  }
-  
-  public void generateUnknownValueField(String typeName, String description, GenBlock block) {
-    generateReturnComment("*",description,false,block);
-    block.ln(typeName + ":->");
+  public void generatePrimitiveValueField(String typeName, String objectType, String description, boolean multi, GenBlock block) {
+    generateReturnComment(objectType,description,multi,block);
+    block.ln(typeName + ": ->");
     block.bs();
-      block.ln("val = @json['"+typeName+"']");
-      block.ln("if val instanceof Object");
+    block.ln("if @json['" + typeName + "']");
+    block.bs();
+    if(multi){
+      block.ln("for item, i in @json['" + typeName + "']");
       block.bs();
-        block.ln("typ = require('./'+val.resourceType)[val.resourceType]");
-        block.ln("new type(val)");
+      addPrimativeBlock(block,typeName,objectType,"item","i"); 
       block.es();
-      block.ln("else");
-      block.bs();
-        block.ln("@json['"+typeName+"'] ");
-      block.es();
+    }else {
+      addPrimativeBlock(block,typeName,objectType,"@json","0");  
+    }
+    block.es();
     block.es();
   }
   
+  
+  private void generatePrimitiveField(GenBlock block,String typeName){
+    block.ln(typeName + ":-> @json['"+typeName+"']");
+  }
+  
+  private void addPrimativeBlock(GenBlock block,String typeName,String objectType,String varName,String index){
+    block.ln("val = "+varName+"['"+typeName+"']");
+    block.ln("_val = "+varName+"['_"+typeName+"'] || {} ");
+    block.ln("_val['value'] = val");
+    block.ln("_val['type'] = '"+ objectType +"'");
+    block.ln(" new PrimitiveType(_val)");
+  }
 
+  
+  public void generateUnknownValueField(String typeName, String description, boolean multi, GenBlock block) {
+    generateReturnComment("*",description,multi,block);
+    block.ln(typeName + ":->");
+    block.bs();
+    block.ln("if @json['" + typeName + "']");
+    block.bs();
+    if(multi){
+      block.ln("for item in @json['" + typeName + "']");
+      block.bs();
+      genUnknownBlock(block,typeName,"item"); 
+      block.es();
+    }else {
+      genUnknownBlock(block,typeName,"@json");  
+    }
+    block.es();
+    block.es();
+  }
+  
+  public void genUnknownBlock(GenBlock block,String typeName, String varName){
+    block.ln("val = "+varName+"['"+typeName+"']");
+    block.ln("if val instanceof Object");
+    block.bs();
+      block.ln("typ = require('./'+val.resourceType)[val.resourceType]");
+      block.ln("new typ(val)");
+    block.es();
+    block.ln("else");
+    block.bs();
+      block.ln("_val = "+varName+"['_"+typeName+"'] || {} ");
+      block.ln("_val['value'] = val");
+      block.ln("new PrimitiveType(_val)");
+    block.es();
+  }
   private void generateSingleValueField(String typeName, String objectType,String description, GenBlock block) {
     generateReturnComment(objectType,description,false,block);
 

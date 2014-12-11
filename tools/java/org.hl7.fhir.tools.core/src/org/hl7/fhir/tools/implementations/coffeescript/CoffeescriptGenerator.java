@@ -43,7 +43,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hl7.fhir.definitions.model.Definitions;
+import org.hl7.fhir.definitions.model.ElementDefn;
 import org.hl7.fhir.definitions.model.ResourceDefn;
+import org.hl7.fhir.definitions.model.TypeDefn;
+import org.hl7.fhir.definitions.model.TypeRef;
 import org.hl7.fhir.tools.implementations.BaseGenerator;
 import org.hl7.fhir.tools.implementations.GenBlock;
 import org.hl7.fhir.tools.publisher.PlatformGenerator;
@@ -88,6 +91,7 @@ public class CoffeescriptGenerator extends BaseGenerator implements PlatformGene
     Utilities.createDirectory(basedDir);
     Utilities.clearDirectory(basedDir);
     GenBlock block = new CSBlock();
+    
     Map<String, String> dirs = new HashMap<String, String>() {{
       put("modelDir",              Utilities.path(basedDir, "fhir"));
     }};
@@ -98,6 +102,9 @@ public class CoffeescriptGenerator extends BaseGenerator implements PlatformGene
     List<String> typeDefs = new ArrayList<String>();
     typeDefs.add("Element");
     typeDefs.add("BackboneElement");
+    typeDefs.add("PrimitiveType");
+    
+    definitions.getInfrastructure().put("PrimitiveType", generatePrimitiveTypeDef());
     addAll(typeDefs,definitions.getInfrastructure().keySet());
     addAll(typeDefs,definitions.getTypes().keySet());
     addAll(typeDefs,definitions.getStructures().keySet());
@@ -129,6 +136,17 @@ public class CoffeescriptGenerator extends BaseGenerator implements PlatformGene
     writer.close();
   }
   
+  private TypeDefn generatePrimitiveTypeDef(){
+    TypeDefn t = new TypeDefn();
+    t.setName("PrimitiveType");
+    ElementDefn d = new ElementDefn();
+    d.setName("value");
+    d.setDeclaredTypeName("*");
+    d.setMaxCardinality(1);
+    d.getTypes().add(new TypeRef("primitive"));
+    t.getElements().add(d);
+    return t;
+  }
   private void addAll(List<String> types, Set<String> toAdd){
     for(String name : toAdd){
       if(!types.contains(name)){
