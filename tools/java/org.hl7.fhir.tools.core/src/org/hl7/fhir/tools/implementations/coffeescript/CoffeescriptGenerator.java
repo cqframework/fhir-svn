@@ -100,7 +100,6 @@ public class CoffeescriptGenerator extends BaseGenerator implements PlatformGene
     Utilities.copyDirectory(resourcesDir, basedDir, null);
     
     List<String> typeDefs = new ArrayList<String>();
-    typeDefs.add("Element");
     typeDefs.add("BackboneElement");
     typeDefs.add("PrimitiveType");
     
@@ -111,6 +110,9 @@ public class CoffeescriptGenerator extends BaseGenerator implements PlatformGene
     //definitions.
     typeDefs.add("Resource");
     typeDefs.add("DomainResource");
+    // Element was added to the non generated core.coffee script to deal with the way 
+    // hl7 has declared extensions to be rendered in JSON 
+    typeDefs.remove("Element");
     addAll(typeDefs,definitions.getBaseResources().keySet());
     
     //typeDefs.putAll(definitions.getInfrastructure());
