@@ -1,0 +1,4 @@
+schema
+.DS_Store
+*.class
+tools/java/imports
